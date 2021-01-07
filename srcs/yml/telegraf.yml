@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: telegraf
+spec:
+  selector:
+    matchLabels:
+      app: telegraf
+  serviceName: telegraf
+  template:
+    metadata:
+      labels:
+        app: telegraf
+    spec:
+      containers:
+      - name: telegraf
+        image: telegraf
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8125
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - telegraf
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: telegraf-vol
+          mountPath: "/var/run/docker.sock"
+      volumes:
+      - name: telegraf-vol
+        hostPath:
+          path: /var/run/docker.sock
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telegraf-svc
+spec:
+  selector:
+    app: telegraf
+  type: ClusterIP
+  ports:
+  - port: 8125
+    targetPort: 8125

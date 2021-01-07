@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-svc
+spec:
+  selector:
+    app: mysql
+  type: ClusterIP
+  ports:
+  - port: 3306
+    name: mysql-port
+    targetPort: 3306
+    protocol: TCP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-volume
+spec:
+  accessModes: 
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: mysql
+        image: mysql
+        imagePullPolicy: Never
+        livenessProbe:
+            exec:
+              command:
+                - sh
+                - livenessprobe.sh
+            initialDelaySeconds: 15
+            periodSeconds: 3
+        volumeMounts:
+        - mountPath: "/var/lib/mysql"
+          name: mysql-data
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: mysql-volume
